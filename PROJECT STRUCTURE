@@ -1,0 +1,8 @@
+├── uploads/                         # Uploaded files (already handled)
+├── templates/                       # HTML templates
+│   ├── index.html                   # Upload page
+│   └── files.html                   # Files list page
+├── app.py                           # Your Flask app (main file)
+├── requirements.txt                 # List of Python dependencies
+├── Procfile                         # For Heroku deployment
+└── runtime.txt                      # Python version (optional for Heroku)
