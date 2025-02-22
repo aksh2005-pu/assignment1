@@ -1,5 +1,9 @@
 import os
-from flask import Flask, request, redirect, url_for, render_template, send_from_directory
+from flask import Flask, request, redirect, url_for, render_template, send_from_directory, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from wtforms import FileField, SubmitField
+from wtforms.validators import InputRequired
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -8,40 +12,59 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uploads.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'supersecretkey'  # Needed for Flask-WTF forms
+
+db = SQLAlchemy(app)
 
 # Create upload folder if it doesn't exist
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 
+class File(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False)
+    filepath = db.Column(db.String(255), nullable=False)
+
+
+class UploadForm(FlaskForm):
+    file = FileField('Upload File', validators=[InputRequired()])
+    submit = SubmitField('Upload')
+
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
-
-
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return 'No file part'
+    form = UploadForm()
     
-    file = request.files['file']
+    if form.validate_on_submit():
+        file = form.file.data
+        
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            
+            # Save file info to the database
+            new_file = File(filename=filename, filepath=filepath)
+            db.session.add(new_file)
+            db.session.commit()
+            
+            flash(f'File {filename} uploaded successfully!', 'success')
+        else:
+            flash('Invalid file type!', 'danger')
     
-    if file.filename == '':
-        return 'No selected file'
-
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return f'File {filename} uploaded successfully!'
+    return render_template('index.html', form=form)
 
 
 @app.route('/files')
 def list_files():
-    files = os.listdir(app.config['UPLOAD_FOLDER'])
+    files = File.query.all()
     return render_template('files.html', files=files)
 
 
@@ -51,4 +74,6 @@ def uploaded_file(filename):
 
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
