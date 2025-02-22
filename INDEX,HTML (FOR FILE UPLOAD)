@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <h1 class="text-3xl font-bold text-center mb-6">File Upload System</h1>
+        
+        <div class="max-w-xl mx-auto bg-white p-6 rounded-lg shadow">
+            <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                {{ form.hidden_tag() }}
+                <div>
+                    {{ form.file.label(class="block text-sm font-medium text-gray-700") }}
+                    {{ form.file(class="mt-1 block w-full p-2 border rounded-lg") }}
+                </div>
+                <div>
+                    {{ form.submit(class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600") }}
+                </div>
+            </form>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mt-6">
+                    {% for category, message in messages %}
+                        <div class="p-4 mb-4 text-sm text-{{ 'green' if category == 'success' else 'red' }}-700 bg-{{ 'green' if category == 'success' else 'red' }}-100 rounded-lg">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>
